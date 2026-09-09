@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Study Lab 🧪</title>
+<link rel="stylesheet" href="css/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧪</text></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <button class="brand" id="homeBtn" title="Home">
+    <span class="brand-mark">🧪</span>
+    <span class="brand-text">Study<span class="brand-accent">Lab</span></span>
+  </button>
+
+  <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+
+  <div class="topbar-right">
+    <!-- Health meter -->
+    <div class="health" id="health" hidden>
+      <span class="health-face" id="healthFace">😄</span>
+      <div class="health-meter">
+        <div class="health-track"><div class="health-fill" id="healthFill"></div></div>
+        <div class="health-meta">
+          <span id="healthLabel">Feeling good</span>
+          <span class="streak" id="streak" hidden>🔥<b>0</b></span>
+        </div>
+      </div>
+    </div>
+
+    <button class="icon-btn" id="themeBtn" title="Toggle light / dark" aria-label="Toggle theme">
+      <span id="themeIcon">🌙</span>
+    </button>
+  </div>
+</header>
+
+<main id="view" class="view"></main>
+
+<footer class="foot">
+  <span>Built for studying, not for cheating 😉</span>
+  <span class="foot-dot">•</span>
+  <button class="linky" id="resetBtn">Reset progress</button>
+</footer>
+
+<!-- Toast -->
+<div class="toast" id="toast" hidden></div>
+
+<!-- ===== Data layer ===== -->
+<script src="js/registry.js"></script>
+
+<!-- ===== Subjects: add one <script> line per subject folder ===== -->
+<script src="data/french-u1c2.js"></script>
+<!-- <script src="data/your-next-subject.js"></script> -->
+
+<!-- ===== App ===== -->
+<script src="js/app.js"></script>
+</body>
+</html>
