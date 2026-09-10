@@ -159,7 +159,20 @@
     { min: 0,  face: '💀', label: 'K.O.' }
   ];
 
-  var HP = { value: 100, streak: 0, best: 0 };
+  /* --- Tuning -----------------------------------------------------
+     Start at half, so the emoji has somewhere to go in both
+     directions. Healing is slow and flat, but damage scales with how
+     high you already are: a wrong answer at the top costs more than
+     three right ones, while down near zero the hits get soft enough
+     to climb back out. Easy to recover, hard to stay perfect.
+     ---------------------------------------------------------------- */
+  var START_HP    = 50;
+  var HEAL        = 4;    // per correct answer
+  var HEAL_SUDDEN = 2;    // sudden death: the bar is just a streak meter
+  var MIN_HIT     = 6;    // damage taken at 0 HP
+  var MAX_HIT     = 20;   // damage taken at 100 HP
+
+  var HP = { value: START_HP, streak: 0, best: 0 };
 
   function stageFor(v) {
     for (var i = 0; i < HP_STAGES.length; i++) if (v >= HP_STAGES[i].min) return HP_STAGES[i];
@@ -192,8 +205,15 @@
   }
 
   function resetHealth() {
-    HP.value = 100; HP.streak = 0; HP.best = 0;
+    HP.value = START_HP; HP.streak = 0; HP.best = 0;
     renderHealth(false);
+  }
+
+  /* Cost of one wrong answer, interpolated between MIN_HIT and MAX_HIT
+     by current health. `mult` softens it for gentler modes. */
+  function hitFor(mult) {
+    var hit = MIN_HIT + (MAX_HIT - MIN_HIT) * (HP.value / 100);
+    return Math.max(1, Math.round(hit * (mult == null ? 1 : mult)));
   }
 
   function damage(amount) {
@@ -819,11 +839,11 @@
     function finishQuestion(q, ok, correctText, givenText) {
       if (ok) {
         right++;
-        heal(sudden ? 3 : 7);
+        heal(sudden ? HEAL_SUDDEN : HEAL);
       } else {
         wrong++;
         if (sudden) { HP.value = 0; HP.streak = 0; renderHealth(true); }
-        else damage(16);
+        else damage(hitFor());
         missed.push({ q: q.prompt, a: correctText, given: givenText });
       }
 
@@ -993,7 +1013,7 @@
           prev.classList.add('hit');
           b.classList.add('hit');
           solved++;
-          heal(6);
+          heal(HEAL);
           updateInfo();
           setTimeout(function () {
             prev.classList.add('gone');
@@ -1006,7 +1026,7 @@
           prev.classList.add('miss');
           b.classList.add('miss');
           mistakes++;
-          damage(12);
+          damage(hitFor(0.7));   // matching involves some guessing — go easier
           updateInfo();
           setTimeout(function () {
             prev.classList.remove('miss');

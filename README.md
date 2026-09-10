@@ -18,9 +18,16 @@ A study site that runs straight off the disk — no server, no install, no inter
 | 💀 | **Sudden Death** | One wrong answer ends the run. How long a streak can you get? |
 | 📖 | **Cheat Sheet** | Every term, every rule, plus the original photos. No scoring. |
 
-**The health bar** sits in the top-right corner. Right answers heal it, wrong answers drain it,
-and the emoji gets progressively angrier: 🤩 → 😄 → 🙂 → 😐 → 😕 → 😠 → 😡 → 💀.
-Hit zero and the run ends.
+**The health bar** sits in the top-right corner and starts at **half**, so the emoji has room to
+move both ways: 🤩 → 😄 → 🙂 → 😐 → 😕 → 😠 → 😡 → 💀. Hit zero and the run ends.
+
+Healing is slow and flat — **+4** per correct answer, so reaching the top takes 13 of them.
+Damage instead **scales with how high you already are**: −20 at full health, −6 near zero.
+One mistake at the top wipes out five right answers, but down low the hits soften enough that
+you can always climb back out. Match Up goes 30% easier, since some of it is guesswork.
+
+The numbers live together at the top of `js/app.js` (`START_HP`, `HEAL`, `MIN_HIT`, `MAX_HIT`)
+if you want to make it harsher or kinder.
 
 The 🌙 / ☀️ button toggles light and dark. Your theme, deck choice, and best scores are remembered.
 
