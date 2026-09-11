@@ -369,7 +369,18 @@ p { margin: 0 0 .8em; }
 /* ================================================================
    Flashcards
    ================================================================ */
-.stage { display: grid; place-items: center; gap: 18px; margin-top: 10px; }
+/* minmax(0, 1fr) — without the 0 floor, a wide `white-space: pre` code
+   block sizes the track by its max-content and pushes the card off-screen
+   on a phone, even though the block scrolls internally. */
+.stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-items: center;
+  gap: 18px;
+  margin-top: 10px;
+}
+.stage > * { max-width: 100%; min-width: 0; }
 
 .flip-wrap { perspective: 1400px; width: 100%; max-width: 620px; }
 .flip {
@@ -569,6 +580,13 @@ p { margin: 0 0 .8em; }
   border-radius: var(--r-md);
   box-shadow: var(--shadow-sm);
   transition: transform .14s, border-color .14s, background .14s, opacity .3s;
+  /* Long terms must wrap instead of blowing the tile out sideways. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
+  /* Kill the 300ms double-tap-zoom delay on touch. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .match-tile:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--accent); }
 .match-tile.picked { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-2px); }
@@ -639,6 +657,44 @@ table.mini td.miss { color: var(--warn); font-weight: 800; }
 
 ul.trap { margin: 0; padding-left: 20px; font-size: .9rem; color: var(--text-soft); }
 ul.trap li { margin-bottom: 7px; }
+
+/* ---------- Code ---------- */
+code, .codeblock {
+  font-family: ui-monospace, 'Cascadia Mono', 'Cascadia Code', Consolas,
+               'SFMono-Regular', 'Liberation Mono', monospace;
+}
+code {
+  font-size: .91em;
+  background: var(--surface-3);
+  padding: 1px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.codeblock {
+  display: block;
+  max-width: 100%;
+  margin: 12px 0 2px;
+  padding: 13px 15px;
+  font-size: .82rem;
+  font-weight: 500;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre;
+  tab-size: 2;
+  color: var(--text);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.q-prompt .codeblock { font-weight: 500; letter-spacing: 0; }
+.note-card .codeblock { margin-top: 0; }
+
+@media (max-width: 560px) {
+  .codeblock { font-size: .74rem; padding: 11px 12px; line-height: 1.55; }
+  code { font-size: .86em; }
+}
 
 .vocab-table { width: 100%; border-collapse: collapse; font-size: .94rem; }
 .vocab-table thead th {
@@ -731,6 +787,27 @@ ul.trap li { margin-bottom: 7px; }
 .chip.on { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
 
 /* ---------- Responsive ---------- */
+/* ---------- Match Up on a phone ---------- */
+@media (max-width: 560px) {
+  .match-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .match-tile {
+    min-height: 72px;
+    padding: 10px 8px;
+    font-size: .82rem;
+    line-height: 1.3;
+    border-radius: var(--r-sm);
+  }
+  /* The board is the whole game — give it the screen. */
+  .stage { gap: 12px; }
+}
+@media (max-width: 380px) {
+  .match-tile { font-size: .76rem; padding: 9px 6px; min-height: 66px; }
+  .match-grid { gap: 7px; }
+}
+
 @media (max-width: 720px) {
   .crumbs { display: none; }
   .health-track { width: 76px; }

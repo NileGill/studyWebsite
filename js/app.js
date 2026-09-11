@@ -204,9 +204,51 @@
     healthEl.hidden = !on;
   }
 
-  function resetHealth() {
-    HP.value = START_HP; HP.streak = 0; HP.best = 0;
+  /* --- Carry-over ---------------------------------------------------
+     The bar belongs to a subject, not to a mode. Switching modes keeps
+     it; switching subjects swaps in that subject's own saved bar. Each
+     subject is stored separately and they never mix.
+     ------------------------------------------------------------------ */
+  var hpSubject = null;    // which subject the in-memory bar belongs to
+  var hpPersist = true;    // false during a throwaway run (Sudden Death)
+
+  function saveHealth() {
+    if (hpPersist && hpSubject) store.set('hp:' + hpSubject, HP.value);
+  }
+
+  /* Load this subject's bar, but keep the live value if we never left. */
+  function syncHealth(subjectId) {
+    hpPersist = true;
+    if (hpSubject !== subjectId) {
+      hpSubject = subjectId;
+      var saved = store.get('hp:' + subjectId, null);
+      HP.value = (typeof saved === 'number' && saved >= 0 && saved <= 100) ? saved : START_HP;
+      HP.streak = 0;
+      HP.best = 0;
+    }
     renderHealth(false);
+  }
+
+  /* Start a scored run. A dead bar revives, so you're never stuck at 0. */
+  function beginRun(subjectId, persist) {
+    if (persist) {
+      syncHealth(subjectId);
+      if (HP.value <= 0) HP.value = START_HP;
+    } else {
+      hpSubject = null;          // throwaway bar — reload from disk next time
+      hpPersist = false;
+      HP.value = START_HP;
+    }
+    HP.streak = 0;
+    HP.best = 0;
+    renderHealth(false);
+    saveHealth();
+  }
+
+  function knockOut() {
+    HP.value = 0; HP.streak = 0;
+    renderHealth(true);
+    saveHealth();
   }
 
   /* Cost of one wrong answer, interpolated between MIN_HIT and MAX_HIT
@@ -220,6 +262,7 @@
     HP.value = Math.max(0, HP.value - amount);
     HP.streak = 0;
     renderHealth(true);
+    saveHealth();
   }
 
   function heal(amount) {
@@ -227,6 +270,7 @@
     HP.streak += 1;
     if (HP.streak > HP.best) HP.best = HP.streak;
     renderHealth(true);
+    saveHealth();
   }
 
   /* ================================================================
@@ -363,7 +407,10 @@
               score: function (v) { return '🏅 Best: ' + v + '%'; } },
     match:  { emoji: '🧩', name: 'Match Up',      blurb: 'Pair French with English, against a clock.', health: true,
               score: function (v) { return '🏅 Best time: ' + v + 's'; } },
+    /* Sudden Death always ends at zero, so it runs on its own throwaway
+       bar rather than wiping the one you've been building up. */
     sudden: { emoji: '💀', name: 'Sudden Death',  blurb: 'One mistake ends the run. How far can you get?', health: true,
+              persist: false,
               score: function (v) { return '🏅 Best streak: ' + v; } }
   };
 
@@ -466,7 +513,8 @@
      View: Subject — modes + decks
      ================================================================ */
   function renderSubject(s) {
-    showHealth(false);
+    showHealth(true);
+    syncHealth(s.id);      // show THIS subject's saved bar, not whatever was last on screen
     setCrumbs([{ label: 'Subjects', href: '#/' }, { label: s.subject + ' · ' + s.title }]);
     document.documentElement.style.setProperty('--accent', s.accent);
 
@@ -562,7 +610,8 @@
     ]);
     document.documentElement.style.setProperty('--accent', s.accent);
     showHealth(m.health);
-    if (m.health) resetHealth();
+    if (m.health) beginRun(s.id, m.persist !== false);
+    else syncHealth(s.id);          // keep the bookkeeping straight
   }
 
   /* ================================================================
@@ -842,7 +891,7 @@
         heal(sudden ? HEAL_SUDDEN : HEAL);
       } else {
         wrong++;
-        if (sudden) { HP.value = 0; HP.streak = 0; renderHealth(true); }
+        if (sudden) knockOut();
         else damage(hitFor());
         missed.push({ q: q.prompt, a: correctText, given: givenText });
       }
@@ -956,7 +1005,10 @@
     var all = scopeCards(s, deckId).filter(function (c) { return c.fr && c.en; });
     if (all.length < 4) return renderEmpty();
 
-    var ROUND = Math.min(6, all.length);
+    // Fewer pairs on a phone so the whole board fits without scrolling
+    // mid-game — hunting for a tile you have to scroll to is miserable.
+    var narrow = window.innerWidth < 560;
+    var ROUND  = Math.min(narrow ? 5 : 6, all.length);
     var picked = shuffle(all).slice(0, ROUND);
 
     var tiles = shuffle(

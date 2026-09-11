@@ -29,6 +29,12 @@ you can always climb back out. Match Up goes 30% easier, since some of it is gue
 The numbers live together at the top of `js/app.js` (`START_HP`, `HEAL`, `MIN_HIT`, `MAX_HIT`)
 if you want to make it harsher or kinder.
 
+**The bar belongs to a subject, not to a mode.** Switch from the quiz to Type It to Match Up and
+it picks up exactly where you left it. Switch *subjects* and you get that subject's own bar —
+they're stored separately (`hp:<subject id>`) and never mix. Two exceptions, both on purpose:
+a bar sitting at 0 revives to half when you start a new run, and **Sudden Death** plays on a
+throwaway bar, since it always ends at zero and would otherwise wipe everything you'd built up.
+
 The 🌙 / ☀️ button toggles light and dark. Your theme, deck choice, and best scores are remembered.
 
 ---
