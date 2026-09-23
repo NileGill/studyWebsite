@@ -24,6 +24,8 @@ window.StudyData = (function () {
     // Fill in defaults so subject files can stay short.
     subject.emoji    = subject.emoji    || '📘';
     subject.subtitle = subject.subtitle || '';
+    subject.subject  = subject.subject  || 'Other';   // the class it belongs to
+    subject.date     = subject.date     || null;      // YYYY-MM-DD, when it was made
     subject.accent   = subject.accent   || '#6366f1';
     subject.decks    = subject.decks    || [];
     subject.quizBank    = subject.quizBank    || [];
@@ -42,11 +44,54 @@ window.StudyData = (function () {
     subjects.push(subject);
   }
 
+  function slugify(s) {
+    return String(s).toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  /* Group the registered sets into classes by their `subject` field.
+     Newest set first inside each class, so the thing you're about to be
+     tested on is the first thing you see. */
+  function classes() {
+    var order = [], byName = {};
+
+    subjects.forEach(function (s) {
+      var name = s.subject;
+      if (!byName[name]) {
+        byName[name] = { name: name, slug: slugify(name), sets: [], emoji: s.emoji };
+        order.push(byName[name]);
+      }
+      var c = byName[name];
+      c.sets.push(s);
+      if (s.classEmoji) c.emoji = s.classEmoji;
+    });
+
+    order.forEach(function (c) {
+      c.sets.sort(function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); });
+      c.latest = c.sets[0].date || null;
+      c.terms  = c.sets.reduce(function (n, s) {
+        return n + s.decks.reduce(function (m, d) { return m + d.cards.length; }, 0);
+      }, 0);
+    });
+
+    return order;
+  }
+
   return {
     register: register,
     all: function () { return subjects.slice(); },
     get: function (id) {
       return subjects.filter(function (s) { return s.id === id; })[0] || null;
-    }
+    },
+    classes: classes,
+    getClass: function (slug) {
+      return classes().filter(function (c) { return c.slug === slug; })[0] || null;
+    },
+    classOf: function (subject) {
+      return classes().filter(function (c) { return c.name === subject.subject; })[0] || null;
+    },
+    slugify: slugify
   };
 })();

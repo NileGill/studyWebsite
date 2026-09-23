@@ -9,6 +9,7 @@ StudyData.register({
   title: 'Objects, References & Strings',
   subtitle: 'Reviews #1–9 — classes, turtles, Strings, aliasing',
   lang: 'Java',
+  date: '2026-09-11',
   emoji: '☕',
   accent: '#2aa9e0',
 

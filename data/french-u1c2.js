@@ -9,6 +9,7 @@ StudyData.register({
   title: 'Unité 1 · Communiquons 2',
   subtitle: "L'école — endroits, personnel & adjectifs",
   lang: 'French',
+  date: '2026-09-09',
   emoji: '🥖',   // flag emoji don't render on Windows, so: baguette.
   accent: '#7c5cff',
 

@@ -29,9 +29,9 @@ you can always climb back out. Match Up goes 30% easier, since some of it is gue
 The numbers live together at the top of `js/app.js` (`START_HP`, `HEAL`, `MIN_HIT`, `MAX_HIT`)
 if you want to make it harsher or kinder.
 
-**The bar belongs to a subject, not to a mode.** Switch from the quiz to Type It to Match Up and
-it picks up exactly where you left it. Switch *subjects* and you get that subject's own bar —
-they're stored separately (`hp:<subject id>`) and never mix. Two exceptions, both on purpose:
+**The bar belongs to a quiz/test, not to a mode.** Switch from the quiz to Type It to Match Up
+and it picks up exactly where you left it. Switch to a *different* quiz — even another one in the
+same class — and you get that one's own bar. They're stored separately (`hp:<id>`) and never mix. Two exceptions, both on purpose:
 a bar sitting at 0 revives to half when you start a new run, and **Sudden Death** plays on a
 throwaway bar, since it always ends at zero and would otherwise wipe everything you'd built up.
 
@@ -39,7 +39,27 @@ The 🌙 / ☀️ button toggles light and dark. Your theme, deck choice, and be
 
 ---
 
-## Adding another subject
+## How it's organised
+
+```
+Classes            French                    AP Comp Sci
+                     |                            |
+Quizzes & tests    Interro de vocabulaire      Objects, References
+                   Unité 1 · Communiquons 2      & Strings
+                     |
+Modes              Flashcards · Quiz · Type It · Match Up · Sudden Death · Cheat Sheet
+```
+
+A **class** is just the `subject` field — every set that shares it gets grouped together
+automatically, so there's no separate list of classes to maintain. Inside a class, sets are
+sorted **newest first** by their `date`, and the most recent one is tagged **Newest**.
+
+Each quiz/test tile shows its date, how many terms it has, your best score, and where its
+health bar currently sits — so two sets in the same class never get mixed up.
+
+---
+
+## Adding another quiz or test
 
 Three steps. Nothing else in the site needs to change.
 
@@ -72,8 +92,10 @@ Only `id`, `subject`, `title`, and `decks` are required. Everything else is opti
 ```js
 StudyData.register({
   id:       'bio-u2',                  // unique, no spaces
-  subject:  'Biology',                 // shown as the category
-  title:    'Unit 2 · Cells',          // shown as the heading
+  subject:  'Biology',                 // THE CLASS — sets sharing this get grouped
+  title:    'Unit 2 · Cells',          // the name of this quiz/test
+  date:     '2026-09-22',              // YYYY-MM-DD, when you made it
+  classEmoji: '🔬',                    // optional: icon for the class tile
   subtitle: 'Organelles and transport',
   emoji:    '🔬',
   accent:   '#0ea5e9',                 // theme colour for this subject

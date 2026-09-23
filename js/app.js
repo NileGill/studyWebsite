@@ -104,6 +104,18 @@
     return uniq(out).filter(function (v) { return /^[0-9A-Za-zÀ-ÿ]/.test(v); });
   }
 
+  function plural(n, one, many) { return n === 1 ? one : many; }
+
+  /* "2026-09-22" -> "Sep 22, 2026". Built from parts rather than
+     new Date(iso), which parses as UTC and can show the day before. */
+  function fmtDate(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+    if (!m) return String(iso || '');
+    var d = new Date(+m[1], +m[2] - 1, +m[3]);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
   function toast(msg) {
     toastEl.textContent = msg;
     toastEl.hidden = false;
@@ -178,6 +190,8 @@
     for (var i = 0; i < HP_STAGES.length; i++) if (v >= HP_STAGES[i].min) return HP_STAGES[i];
     return HP_STAGES[HP_STAGES.length - 1];
   }
+
+  function faceFor(v) { return stageFor(v).face; }
 
   function renderHealth(bump) {
     var st = stageFor(HP.value);
@@ -423,9 +437,13 @@
 
   function route() {
     var p = parseHash();
-    var subjects = StudyData.all();
 
-    if (!p.length) return renderHome(subjects);
+    if (!p.length) return renderHome();
+
+    if (p[0] === 'c') {
+      var cls = StudyData.getClass(p[1]);
+      if (cls) return renderClass(cls);
+    }
 
     var subject = StudyData.get(p[1]);
     if (p[0] === 's' && subject)     return renderSubject(subject);
@@ -434,7 +452,7 @@
       var mode = p[2], deckId = p[3] || 'all';
       if (MODES[mode]) return startMode(subject, mode, deckId);
     }
-    renderHome(subjects);
+    renderHome();
   }
 
   window.addEventListener('hashchange', route);
@@ -464,47 +482,82 @@
   /* ================================================================
      View: Home — all subjects
      ================================================================ */
-  function renderHome(subjects) {
+  function renderHome() {
+    var classes = StudyData.classes();
     showHealth(false);
     setCrumbs([]);
     document.documentElement.style.removeProperty('--accent');
 
-    if (!subjects.length) {
+    if (!classes.length) {
       view.innerHTML =
         '<div class="empty"><span class="big">📚</span>' +
-        '<h2>No subjects loaded yet</h2>' +
+        '<h2>Nothing loaded yet</h2>' +
         '<p>Drop a file in <code>data/</code> and add one <code>&lt;script&gt;</code> tag to <code>index.html</code>.<br>' +
         'See <b>README.md</b> for the recipe.</p></div>';
       return;
     }
 
-    var cards = subjects.map(function (s) {
-      var count = s.decks.reduce(function (n, d) { return n + d.cards.length; }, 0);
-      var best = store.get('best:' + s.id, null);
+    var total = classes.reduce(function (n, c) { return n + c.sets.length; }, 0);
+
+    var cards = classes.map(function (c) {
       return '' +
-        '<button class="tile" data-go="#/s/' + esc(s.id) + '">' +
-          '<span class="tile-emoji">' + s.emoji + '</span>' +
-          '<span class="tile-title">' + esc(s.subject) + ' · ' + esc(s.title) + '</span>' +
-          '<span class="tile-sub">' + esc(s.subtitle) + '</span>' +
-          '<span class="tile-foot">' + count + ' terms · ' + s.decks.length + ' decks' +
-            (best ? ' · best ' + best + '%' : '') + '</span>' +
+        '<button class="tile" data-go="#/c/' + esc(c.slug) + '">' +
+          '<span class="tile-emoji">' + c.emoji + '</span>' +
+          '<span class="tile-title">' + esc(c.name) + '</span>' +
+          '<span class="tile-sub">' + c.sets.length + ' ' + plural(c.sets.length, 'quiz &amp; test', 'quizzes &amp; tests') +
+            ' · ' + c.terms + ' terms</span>' +
+          '<span class="tile-foot">' + (c.latest ? 'Newest: ' + fmtDate(c.latest) : '') + '</span>' +
         '</button>';
     }).join('');
 
     view.innerHTML =
       '<div class="hero">' +
         '<span class="eyebrow">🧪 Study Lab</span>' +
-        '<h1>Pick something to study <span>📚</span></h1>' +
-        '<p>Flashcards, quizzes, and a very judgemental emoji that tracks how you are doing.</p>' +
+        '<h1>Your classes <span>🎒</span></h1>' +
+        '<p>' + total + ' ' + plural(total, 'quiz &amp; test', 'quizzes &amp; tests') + ' across ' +
+          classes.length + ' ' + plural(classes.length, 'class', 'classes') +
+          '. Pick a class to see what’s in it.</p>' +
       '</div>' +
-      '<div class="grid cols-2">' + cards + '</div>' +
-      '<h2 class="section-title">Adding a subject <small>quick reminder</small></h2>' +
-      '<div class="card note-card">' +
-        '<p class="muted" style="margin:0">Make a folder for the material, add a matching file in ' +
-        '<code>data/</code>, then add one <code>&lt;script src="data/…"&gt;</code> line to ' +
-        '<code>index.html</code>. Everything else — modes, health bar, themes — works automatically. ' +
-        'The full schema is in <b>README.md</b>.</p>' +
-      '</div>';
+      '<div class="grid cols-2">' + cards + '</div>';
+
+    wireGo();
+  }
+
+  /* ================================================================
+     View: Class — the quizzes and tests inside one class
+     ================================================================ */
+  function renderClass(c) {
+    showHealth(false);
+    setCrumbs([{ label: 'Classes', href: '#/' }, { label: c.name }]);
+    document.documentElement.style.setProperty('--accent', c.sets[0].accent);
+
+    var cards = c.sets.map(function (s, i) {
+      var count = s.decks.reduce(function (n, d) { return n + d.cards.length; }, 0);
+      var best  = store.get('best:' + s.id, null);
+      var hp    = store.get('hp:' + s.id, null);
+      return '' +
+        '<button class="tile" data-go="#/s/' + esc(s.id) + '">' +
+          (i === 0 && c.sets.length > 1 ? '<span class="tile-badge">Newest</span>' : '') +
+          '<span class="tile-emoji">' + s.emoji + '</span>' +
+          '<span class="tile-title">' + esc(s.title) + '</span>' +
+          '<span class="tile-sub">' + esc(s.subtitle) + '</span>' +
+          '<span class="tile-meta">' +
+            '<span class="pill">📅 ' + (s.date ? fmtDate(s.date) : 'no date') + '</span>' +
+            '<span class="pill">' + count + ' terms</span>' +
+            (best ? '<span class="pill">🏅 ' + best + '%</span>' : '') +
+            (typeof hp === 'number' ? '<span class="pill">' + faceFor(hp) + ' ' + hp + '</span>' : '') +
+          '</span>' +
+        '</button>';
+    }).join('');
+
+    view.innerHTML =
+      '<div class="hero">' +
+        '<span class="eyebrow">' + c.emoji + ' Class</span>' +
+        '<h1>' + esc(c.name) + '</h1>' +
+        '<p>' + c.sets.length + ' ' + plural(c.sets.length, 'quiz &amp; test', 'quizzes &amp; tests') +
+          ', newest first. The date is when the study set was made.</p>' +
+      '</div>' +
+      '<div class="grid cols-2">' + cards + '</div>';
 
     wireGo();
   }
@@ -515,7 +568,12 @@
   function renderSubject(s) {
     showHealth(true);
     syncHealth(s.id);      // show THIS subject's saved bar, not whatever was last on screen
-    setCrumbs([{ label: 'Subjects', href: '#/' }, { label: s.subject + ' · ' + s.title }]);
+    var cls = StudyData.classOf(s);
+    setCrumbs([
+      { label: 'Classes', href: '#/' },
+      { label: s.subject, href: '#/c/' + (cls ? cls.slug : '') },
+      { label: s.title }
+    ]);
     document.documentElement.style.setProperty('--accent', s.accent);
 
     var deckId = store.get('deck:' + s.id, 'all');
@@ -603,8 +661,9 @@
 
   function modeHeader(s, mode, deckId) {
     var m = MODES[mode];
+    var cls = StudyData.classOf(s);
     setCrumbs([
-      { label: 'Subjects', href: '#/' },
+      { label: s.subject, href: '#/c/' + (cls ? cls.slug : '') },
       { label: s.title, href: '#/s/' + s.id },
       { label: m.name + ' · ' + deckLabel(s, deckId) }
     ]);
@@ -1135,8 +1194,9 @@
   function renderCheat(s) {
     showHealth(false);
     detachKeys();
+    var cls = StudyData.classOf(s);
     setCrumbs([
-      { label: 'Subjects', href: '#/' },
+      { label: s.subject, href: '#/c/' + (cls ? cls.slug : '') },
       { label: s.title, href: '#/s/' + s.id },
       { label: 'Cheat sheet' }
     ]);
