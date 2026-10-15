@@ -44,8 +44,8 @@ The 🌙 / ☀️ button toggles light and dark. Your theme, deck choice, and be
 ```
 Classes            French                    AP Comp Sci
                      |                            |
-Quizzes & tests    Interro de vocabulaire      Objects, References
-                   Unité 1 · Communiquons 2      & Strings
+Quizzes & tests    Interro de vocabulaire      Unit 2 · Classes
+                   Unité 1 · Communiquons 2    Objects, References & Strings
                      |
 Modes              Flashcards · Quiz · Type It · Match Up · Sudden Death · Cheat Sheet
 ```
@@ -190,7 +190,9 @@ Study website/
 ├── js/registry.js          the tiny StudyData registry
 ├── js/app.js               modes, health bar, routing, question generation
 ├── data/french-u1c2.js     the French unit
-└── frenchUnitOneQuiz/      the original photos
+├── data/apcs-classes.js    AP Comp Sci Unit 2 · Classes practice test
+├── frenchUnitOneQuiz/      the original photos
+└── APCSUnit2/              the Unit 2 targets sheet (PDF + page images)
 ```
 
 ---

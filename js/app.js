@@ -50,7 +50,8 @@
   }
 
   function uniq(arr) {
-    var seen = {}, out = [];
+    // No prototype, so terms like "toString" or "constructor" aren't mistaken for already-seen keys.
+    var seen = Object.create(null), out = [];
     arr.forEach(function (x) { if (x && !seen[x]) { seen[x] = 1; out.push(x); } });
     return out;
   }
